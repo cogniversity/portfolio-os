@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { assertCanWrite } from "@/lib/rbac";
 import { PageHeader } from "@/components/work/page-header";
@@ -20,7 +20,7 @@ export default async function NewPortfolioPage() {
 
   return (
     <div>
-      <PageHeader title="New portfolio" breadcrumbs={<a href="/portfolios">Portfolios</a>} />
+      <PageHeader title="New portfolio" breadcrumbs={<Link href="/portfolios">Portfolios</Link>} />
       <div className="container max-w-2xl py-6">
         <Card>
           <CardContent className="pt-6">

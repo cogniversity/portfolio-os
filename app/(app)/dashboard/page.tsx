@@ -163,7 +163,7 @@ export default async function DashboardPage({
 
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="p-4 lg:col-span-2">
-            <h2 className="mb-3 text-sm font-semibold">What's planned</h2>
+            <h2 className="mb-3 text-sm font-semibold">What&apos;s planned</h2>
             <DashboardTimeline
               granularity={granularity}
               products={products}
