@@ -1,0 +1,430 @@
+// Portfolio OS - Product Management & Roadmap Platform
+// Full Phase 1 data model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH & USERS (Trench 1)
+// ============================================================
+
+enum UserRoleType {
+  LEADER
+  PRODUCT_MANAGER
+  TEAM_MEMBER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  profile       Profile?
+  roles         UserRole[]
+
+  ownedPortfolios   Portfolio[]   @relation("PortfolioOwner")
+  ownedProducts     Product[]     @relation("ProductOwner")
+  ownedInitiatives  Initiative[]  @relation("InitiativeOwner")
+  ownedEpics        Epic[]        @relation("EpicOwner")
+  ownedStories      Story[]       @relation("StoryOwner")
+  ownedTasks        Task[]        @relation("TaskOwner")
+  assignedTasks     Task[]        @relation("TaskAssignee")
+  assignedStories   Story[]       @relation("StoryAssignee")
+
+  comments      Comment[]
+  activities    ActivityLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  profiles  Profile[]
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  fullName  String
+  avatarUrl String?
+  teamId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id])
+}
+
+model UserRole {
+  id     String       @id @default(cuid())
+  userId String
+  role   UserRoleType
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+// ============================================================
+// WORK HIERARCHY (Trench 2)
+// ============================================================
+
+enum WorkStatus {
+  DRAFT
+  PLANNED
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  RELEASED
+  CANCELLED
+}
+
+enum Priority {
+  P0
+  P1
+  P2
+  P3
+}
+
+enum WorkItemType {
+  PORTFOLIO
+  PRODUCT
+  INITIATIVE
+  EPIC
+  STORY
+  TASK
+  RELEASE
+}
+
+model Portfolio {
+  id          String     @id @default(cuid())
+  name        String
+  description String?    @db.Text
+  ownerId     String?
+  status      WorkStatus @default(PLANNED)
+  priority    Priority   @default(P2)
+  startDate   DateTime?
+  targetDate  DateTime?
+  actualDate  DateTime?
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  owner    User?     @relation("PortfolioOwner", fields: [ownerId], references: [id])
+  products Product[]
+}
+
+model Product {
+  id          String     @id @default(cuid())
+  portfolioId String?
+  name        String
+  description String?    @db.Text
+  ownerId     String?
+  status      WorkStatus @default(PLANNED)
+  priority    Priority   @default(P2)
+  color       String?
+  startDate   DateTime?
+  targetDate  DateTime?
+  actualDate  DateTime?
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  portfolio   Portfolio?           @relation(fields: [portfolioId], references: [id])
+  owner       User?                @relation("ProductOwner", fields: [ownerId], references: [id])
+  initiatives InitiativeProduct[]
+  releases    Release[]
+}
+
+model InitiativeType {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  color     String   @default("#6366f1")
+  isBuiltIn Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fields      CustomFieldDefinition[]
+  initiatives Initiative[]
+}
+
+enum CustomFieldKind {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  TEXTAREA
+  CUSTOMER_LINK
+}
+
+model CustomFieldDefinition {
+  id         String          @id @default(cuid())
+  typeId     String
+  key        String
+  label      String
+  kind       CustomFieldKind
+  options    Json?
+  required   Boolean         @default(false)
+  orderIndex Int             @default(0)
+
+  type   InitiativeType      @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  values CustomFieldValue[]
+
+  @@unique([typeId, key])
+}
+
+model CustomFieldValue {
+  id           String @id @default(cuid())
+  initiativeId String
+  definitionId String
+  value        Json?
+
+  initiative Initiative            @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  definition CustomFieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([initiativeId, definitionId])
+}
+
+model Initiative {
+  id          String     @id @default(cuid())
+  typeId      String?
+  name        String
+  description String?    @db.Text
+  ownerId     String?
+  status      WorkStatus @default(PLANNED)
+  priority    Priority   @default(P2)
+  startDate   DateTime?
+  targetDate  DateTime?
+  actualDate  DateTime?
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  type       InitiativeType?    @relation(fields: [typeId], references: [id])
+  owner      User?              @relation("InitiativeOwner", fields: [ownerId], references: [id])
+  products   InitiativeProduct[]
+  epics      Epic[]
+  fieldValues CustomFieldValue[]
+}
+
+model InitiativeProduct {
+  initiativeId String
+  productId    String
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([initiativeId, productId])
+}
+
+model Epic {
+  id           String     @id @default(cuid())
+  initiativeId String
+  name         String
+  description  String?    @db.Text
+  ownerId      String?
+  status       WorkStatus @default(PLANNED)
+  priority     Priority   @default(P2)
+  startDate    DateTime?
+  targetDate   DateTime?
+  actualDate   DateTime?
+  orderIndex   Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  initiative Initiative    @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  owner      User?         @relation("EpicOwner", fields: [ownerId], references: [id])
+  stories    Story[]
+  releases   ReleaseEpic[]
+}
+
+model Story {
+  id          String     @id @default(cuid())
+  epicId      String
+  name        String
+  description String?    @db.Text
+  ownerId     String?
+  assigneeId  String?
+  status      WorkStatus @default(PLANNED)
+  priority    Priority   @default(P2)
+  startDate   DateTime?
+  targetDate  DateTime?
+  actualDate  DateTime?
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  epic     Epic           @relation(fields: [epicId], references: [id], onDelete: Cascade)
+  owner    User?          @relation("StoryOwner", fields: [ownerId], references: [id])
+  assignee User?          @relation("StoryAssignee", fields: [assigneeId], references: [id])
+  tasks    Task[]
+  releases ReleaseStory[]
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  storyId     String
+  name        String
+  description String?    @db.Text
+  ownerId     String?
+  assigneeId  String?
+  status      WorkStatus @default(PLANNED)
+  priority    Priority   @default(P2)
+  startDate   DateTime?
+  targetDate  DateTime?
+  actualDate  DateTime?
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  story    Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  owner    User? @relation("TaskOwner", fields: [ownerId], references: [id])
+  assignee User? @relation("TaskAssignee", fields: [assigneeId], references: [id])
+}
+
+// ============================================================
+// RELEASES (Trench 4)
+// ============================================================
+
+enum ReleaseStatus {
+  PLANNED
+  IN_DEVELOPMENT
+  RELEASED
+  DEPRECATED
+}
+
+model Release {
+  id          String        @id @default(cuid())
+  productId   String
+  name        String
+  version     String?
+  description String?       @db.Text
+  status      ReleaseStatus @default(PLANNED)
+  plannedDate DateTime?
+  actualDate  DateTime?
+  orderIndex  Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  epics   ReleaseEpic[]
+  stories ReleaseStory[]
+}
+
+model ReleaseEpic {
+  releaseId String
+  epicId    String
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  epic    Epic    @relation(fields: [epicId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, epicId])
+}
+
+model ReleaseStory {
+  releaseId String
+  storyId   String
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, storyId])
+}
+
+// ============================================================
+// COLLABORATION (Trench 8)
+// ============================================================
+
+model Comment {
+  id        String       @id @default(cuid())
+  itemType  WorkItemType
+  itemId    String
+  authorId  String
+  body      String       @db.Text
+  mentions  String[]     @default([])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([itemType, itemId])
+}
+
+enum ActivityKind {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  DATE_CHANGED
+  PRIORITY_CHANGED
+  DELETED
+  COMMENTED
+  TIMELINE_SHIFT
+  RELEASE_ADDED
+  RELEASE_REMOVED
+}
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  itemType  WorkItemType
+  itemId    String
+  actorId   String?
+  kind      ActivityKind
+  summary   String
+  diff      Json?
+  createdAt DateTime     @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([itemType, itemId])
+  @@index([createdAt])
+}
