@@ -14,6 +14,7 @@ import {
   Target,
   FileBarChart2,
   Settings,
+  Sparkles,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,17 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/products", label: "Products", icon: Package },
       { href: "/initiatives", label: "Initiatives", icon: Target },
       { href: "/releases", label: "Releases", icon: Rocket },
+    ],
+  },
+  {
+    section: "Planning",
+    items: [
+      {
+        href: "/ai/plan",
+        label: "Plan with AI",
+        icon: Sparkles,
+        roles: ["PRODUCT_MANAGER"],
+      },
     ],
   },
   {

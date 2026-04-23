@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { RELEASE_STATUS_LABELS } from "@/lib/constants";
 import { ActivityFeed } from "@/components/collab/activity-feed";
 import { Comments } from "@/components/collab/comments";
+import { SuggestChildrenButton } from "@/components/ai/suggest-children-button";
+import { isAIConfigured } from "@/lib/ai/client";
 
 export default async function ProductDetailPage({
   params,
@@ -82,10 +84,17 @@ export default async function ProductDetailPage({
         }
         action={
           canWrite(user) && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
                 <Link href={`/products/${product.id}/edit`}>Edit</Link>
               </Button>
+              {isAIConfigured() && (
+                <SuggestChildrenButton
+                  parentKind="PRODUCT"
+                  parentId={product.id}
+                  parentName={product.name}
+                />
+              )}
               <Button asChild size="sm" variant="outline">
                 <Link href={`/releases/new?productId=${product.id}`}>
                   <Plus className="h-4 w-4" /> Release

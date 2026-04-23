@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { RELEASE_STATUS_LABELS } from "@/lib/constants";
 import type { ReleaseStatus } from "@prisma/client";
+import { DescribeAssistant } from "@/components/ai/describe-assistant";
 
 type Product = { id: string; name: string };
 
@@ -130,7 +131,15 @@ export function ReleaseForm({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="description">Description</Label>
+          <DescribeAssistant
+            kind="RELEASE"
+            name={state.name}
+            currentDescription={state.description}
+            onAccept={(text) => setState((s) => ({ ...s, description: text }))}
+          />
+        </div>
         <Textarea
           id="description"
           rows={3}

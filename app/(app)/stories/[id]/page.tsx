@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Plus } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { requireUser, canWriteAssigned } from "@/lib/rbac";
+import { requireUser, canWrite, canWriteAssigned } from "@/lib/rbac";
+import { SuggestChildrenButton } from "@/components/ai/suggest-children-button";
+import { isAIConfigured } from "@/lib/ai/client";
 import { PageHeader } from "@/components/work/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,10 +71,18 @@ export default async function StoryDetailPage({
         }
         action={
           canEdit && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
                 <Link href={`/stories/${story.id}/edit`}>Edit</Link>
               </Button>
+              {canWrite(user) && isAIConfigured() && (
+                <SuggestChildrenButton
+                  parentKind="STORY"
+                  parentId={story.id}
+                  parentName={story.name}
+                  buttonLabel="Suggest tasks"
+                />
+              )}
             </div>
           )
         }

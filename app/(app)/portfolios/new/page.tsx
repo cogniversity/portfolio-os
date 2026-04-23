@@ -29,6 +29,7 @@ export default async function NewPortfolioPage() {
               owners={owners}
               submitLabel="Create portfolio"
               onSuccessHref={(id) => `/portfolios/${id}`}
+              aiContext={{ kind: "PORTFOLIO" }}
             />
           </CardContent>
         </Card>

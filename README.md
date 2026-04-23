@@ -10,6 +10,7 @@ A multi-persona product management and roadmap platform. Phase 1 covers the full
 - Auth.js (NextAuth v5) with Credentials + Google
 - `@dnd-kit` for roadmap/kanban drag, `date-fns` for dates, `papaparse` for CSV
 - Zod-validated Server Actions; role guards in `lib/rbac.ts`
+- Optional OpenAI-powered AI assist (plan-with-text, Suggest children, Improve description) via `lib/ai/*`
 
 ## Quickstart
 
@@ -68,6 +69,19 @@ See [`docs/architecture.md`](docs/architecture.md) for a deeper tour and [`docs/
 - `/dashboard` — KPI cards, planned-work timeline, initiatives-by-type breakdown, upcoming releases, recent activity, at-risk initiatives
 - `/reports` — release plan, roadmap, workload, initiative-by-type; each with filters, CSV export, and a print-friendly stylesheet
 - `/settings/initiative-types` — CRUD for types plus a field builder for custom fields (text/number/date/select/textarea/customer-link)
+- `/ai/plan` (PM-only) — paste prose (PRD, notes, transcript) and preview an editable tree of suggested initiatives/epics/stories before committing in one transaction
+
+## Optional: enable AI assist
+
+Set these in `.env` (or your deploy secrets) to unlock the `/ai/plan` page, the "Suggest children" action on every hierarchy detail page, and the "Improve with AI" popover on every description field:
+
+```
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini    # optional; defaults to gpt-4o-mini
+OPENAI_BASE_URL=            # optional; set for Azure / OpenAI-compatible endpoints
+```
+
+All AI writes are gated by the PM role and flow through a preview panel — the user reviews, edits, toggles, and confirms before anything touches the database. Applied items are logged with `diff.source = "ai"` in the activity feed.
 
 ## What's deferred to Phase 2
 

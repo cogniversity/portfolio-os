@@ -50,6 +50,7 @@ export function ProductForm({
       initial={initial}
       submitLabel={submitLabel}
       onSuccessHref={(id) => `/products/${id}`}
+      aiContext={{ kind: "PRODUCT" }}
       extraFields={
         <>
           <div className="space-y-2">

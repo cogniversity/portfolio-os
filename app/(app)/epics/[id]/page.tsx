@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkItemRowList } from "@/components/work/work-item-row";
 import { ActivityFeed } from "@/components/collab/activity-feed";
 import { Comments } from "@/components/collab/comments";
+import { SuggestChildrenButton } from "@/components/ai/suggest-children-button";
+import { isAIConfigured } from "@/lib/ai/client";
 
 export default async function EpicDetailPage({
   params,
@@ -62,10 +64,17 @@ export default async function EpicDetailPage({
         }
         action={
           canWrite(user) && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
                 <Link href={`/epics/${epic.id}/edit`}>Edit</Link>
               </Button>
+              {isAIConfigured() && (
+                <SuggestChildrenButton
+                  parentKind="EPIC"
+                  parentId={epic.id}
+                  parentName={epic.name}
+                />
+              )}
               <Button asChild size="sm">
                 <Link href={`/stories/new?epicId=${epic.id}`}>
                   <Plus className="h-4 w-4" /> Add story

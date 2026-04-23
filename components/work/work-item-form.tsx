@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/select";
 import { STATUS_LABELS, STATUS_ORDER, PRIORITY_ORDER, PRIORITY_LABELS } from "@/lib/constants";
 import type { Priority, WorkStatus } from "@prisma/client";
+import { DescribeAssistant } from "@/components/ai/describe-assistant";
+import type { AiDescribeKind } from "@/lib/ai/schemas";
+
+export type AiContext = {
+  kind: AiDescribeKind;
+};
 
 export type BaseItemInitial = {
   name: string;
@@ -41,6 +47,7 @@ export function WorkItemForm({
   submitLabel = "Save",
   extraFields,
   onSuccessHref,
+  aiContext,
 }: {
   action: (input: BaseItemInitial & Record<string, any>) => Promise<
     { ok: true; id: string } | { ok: false; error: string }
@@ -50,6 +57,7 @@ export function WorkItemForm({
   submitLabel?: string;
   extraFields?: React.ReactNode;
   onSuccessHref?: (id: string) => string;
+  aiContext?: AiContext;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -94,7 +102,17 @@ export function WorkItemForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="description">Description</Label>
+          {aiContext ? (
+            <DescribeAssistant
+              kind={aiContext.kind}
+              name={state.name}
+              currentDescription={state.description ?? ""}
+              onAccept={(text) => setState((s) => ({ ...s, description: text }))}
+            />
+          ) : null}
+        </div>
         <Textarea
           id="description"
           rows={4}

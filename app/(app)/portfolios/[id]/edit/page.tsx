@@ -49,6 +49,7 @@ export default async function EditPortfolioPage({
               initial={p}
               submitLabel="Save changes"
               onSuccessHref={() => `/portfolios/${id}`}
+              aiContext={{ kind: "PORTFOLIO" }}
             />
           </CardContent>
         </Card>

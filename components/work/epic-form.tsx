@@ -63,6 +63,7 @@ export function EpicForm({
       initial={initial}
       submitLabel={submitLabel}
       onSuccessHref={onSuccessHref}
+      aiContext={{ kind: "EPIC" }}
       extraFields={
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">

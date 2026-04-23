@@ -39,6 +39,7 @@ export function StoryForm({
       initial={initial}
       submitLabel={submitLabel}
       onSuccessHref={onSuccessHref ?? ((id) => `/stories/${id}`)}
+      aiContext={{ kind: "STORY" }}
       extraFields={
         <div className="space-y-2">
           <Label>Assignee</Label>

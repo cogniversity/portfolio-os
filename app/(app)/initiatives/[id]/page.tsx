@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HierarchyTree, type TreeNode } from "@/components/work/hierarchy-tree";
 import { ActivityFeed } from "@/components/collab/activity-feed";
 import { Comments } from "@/components/collab/comments";
+import { SuggestChildrenButton } from "@/components/ai/suggest-children-button";
+import { isAIConfigured } from "@/lib/ai/client";
 
 export default async function InitiativeDetailPage({
   params,
@@ -94,10 +96,17 @@ export default async function InitiativeDetailPage({
         breadcrumbs={<Link href="/initiatives">Initiatives</Link>}
         action={
           canWrite(user) && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
                 <Link href={`/initiatives/${init.id}/edit`}>Edit</Link>
               </Button>
+              {isAIConfigured() && (
+                <SuggestChildrenButton
+                  parentKind="INITIATIVE"
+                  parentId={init.id}
+                  parentName={init.name}
+                />
+              )}
               <Button asChild size="sm">
                 <Link href={`/epics/new?initiativeId=${init.id}`}>
                   <Plus className="h-4 w-4" /> Add epic

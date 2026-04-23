@@ -84,6 +84,7 @@ export function InitiativeForm({
       initial={initial}
       submitLabel={submitLabel}
       onSuccessHref={(id) => `/initiatives/${id}`}
+      aiContext={{ kind: "INITIATIVE" }}
       extraFields={
         <>
           <div className="space-y-2">
