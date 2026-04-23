@@ -572,6 +572,22 @@ async function seedWork(
     }
   }
 
+  await prisma.epic.create({
+    data: {
+      productId: prodC.id,
+      initiativeId: null,
+      name: `${prodC.name} · Platform hardening`,
+      description:
+        "Cross-cutting product-direct epic not tied to any strategic initiative.",
+      ownerId: pm2.id,
+      status: "IN_PROGRESS",
+      priority: "P1",
+      startDate: daysFrom(-10),
+      targetDate: daysFrom(45),
+      orderIndex: 0,
+    },
+  });
+
   const prodRels: Record<string, string[]> = {};
   for (const p of products) {
     const rels = [
@@ -611,7 +627,8 @@ async function seedWork(
     include: { initiative: { include: { products: true } } },
   });
   for (const epic of allEpics) {
-    const productId = epic.initiative.products[0]?.productId;
+    const productId =
+      epic.productId ?? epic.initiative?.products[0]?.productId ?? null;
     if (!productId) continue;
     const rels = prodRels[productId] ?? [];
     if (rels.length < 2) continue;

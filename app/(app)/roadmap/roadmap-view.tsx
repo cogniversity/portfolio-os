@@ -279,7 +279,11 @@ export function RoadmapView({
                       />
                       <PriorityBadge priority={i.priority} />
                       <Link
-                        href={`/initiatives/${i.id}`}
+                        href={
+                          i.id.startsWith("epic:")
+                            ? `/epics/${i.id.slice("epic:".length)}`
+                            : `/initiatives/${i.id}`
+                        }
                         className="min-w-0 flex-1 truncate hover:underline"
                       >
                         {i.name}
@@ -335,7 +339,21 @@ export function RoadmapView({
                             status={i.status}
                             label={i.name}
                             onDragEnd={(dx) =>
-                              handleDragEnd("initiative", i.id, i.startDate, i.endDate, dx)
+                              i.id.startsWith("epic:")
+                                ? handleDragEnd(
+                                    "epic",
+                                    i.id.slice("epic:".length),
+                                    i.startDate,
+                                    i.endDate,
+                                    dx,
+                                  )
+                                : handleDragEnd(
+                                    "initiative",
+                                    i.id,
+                                    i.startDate,
+                                    i.endDate,
+                                    dx,
+                                  )
                             }
                             canEdit={canEdit}
                           />

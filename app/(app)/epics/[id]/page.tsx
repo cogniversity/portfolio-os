@@ -27,6 +27,7 @@ export default async function EpicDetailPage({
     include: {
       owner: true,
       initiative: true,
+      product: true,
       stories: {
         include: { owner: true, assignee: true, tasks: { select: { id: true, status: true } } },
         orderBy: { orderIndex: "asc" },
@@ -42,8 +43,21 @@ export default async function EpicDetailPage({
         description={epic.description ?? undefined}
         breadcrumbs={
           <>
-            <Link href="/initiatives">Initiatives</Link> /{" "}
-            <Link href={`/initiatives/${epic.initiative.id}`}>{epic.initiative.name}</Link>
+            {epic.initiative ? (
+              <>
+                <Link href="/initiatives">Initiatives</Link> /{" "}
+                <Link href={`/initiatives/${epic.initiative.id}`}>
+                  {epic.initiative.name}
+                </Link>
+              </>
+            ) : null}
+            {epic.initiative && epic.product ? <span className="mx-1">·</span> : null}
+            {epic.product ? (
+              <>
+                <Link href="/products">Products</Link> /{" "}
+                <Link href={`/products/${epic.product.id}`}>{epic.product.name}</Link>
+              </>
+            ) : null}
           </>
         }
         action={

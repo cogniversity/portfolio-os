@@ -27,7 +27,7 @@ export default async function StoryDetailPage({
     include: {
       owner: true,
       assignee: true,
-      epic: { include: { initiative: true } },
+      epic: { include: { initiative: true, product: true } },
       tasks: {
         include: { owner: true, assignee: true },
         orderBy: { orderIndex: "asc" },
@@ -50,7 +50,21 @@ export default async function StoryDetailPage({
         description={story.description ?? undefined}
         breadcrumbs={
           <>
-            <Link href={`/initiatives/${story.epic.initiative.id}`}>{story.epic.initiative.name}</Link> /{" "}
+            {story.epic.initiative ? (
+              <>
+                <Link href={`/initiatives/${story.epic.initiative.id}`}>
+                  {story.epic.initiative.name}
+                </Link>{" "}
+                /{" "}
+              </>
+            ) : story.epic.product ? (
+              <>
+                <Link href={`/products/${story.epic.product.id}`}>
+                  {story.epic.product.name}
+                </Link>{" "}
+                /{" "}
+              </>
+            ) : null}
             <Link href={`/epics/${story.epic.id}`}>{story.epic.name}</Link>
           </>
         }

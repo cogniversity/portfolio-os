@@ -17,7 +17,10 @@ export default async function NewStoryPage({
   if (!epicId) redirect("/initiatives");
   const [owners, epic] = await Promise.all([
     prisma.user.findMany({ select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
-    prisma.epic.findUnique({ where: { id: epicId }, include: { initiative: true } }),
+    prisma.epic.findUnique({
+      where: { id: epicId },
+      include: { initiative: true, product: true },
+    }),
   ]);
   if (!epic) redirect("/initiatives");
 
@@ -32,7 +35,19 @@ export default async function NewStoryPage({
         title={`New story in ${epic.name}`}
         breadcrumbs={
           <>
-            <Link href={`/initiatives/${epic.initiative.id}`}>{epic.initiative.name}</Link> /{" "}
+            {epic.initiative ? (
+              <>
+                <Link href={`/initiatives/${epic.initiative.id}`}>
+                  {epic.initiative.name}
+                </Link>{" "}
+                /{" "}
+              </>
+            ) : epic.product ? (
+              <>
+                <Link href={`/products/${epic.product.id}`}>{epic.product.name}</Link>{" "}
+                /{" "}
+              </>
+            ) : null}
             <Link href={`/epics/${epic.id}`}>{epic.name}</Link>
           </>
         }

@@ -32,9 +32,20 @@ export default async function ProductDetailPage({
       initiatives: {
         include: {
           initiative: {
-            include: { owner: true, type: true },
+            include: {
+              owner: true,
+              type: true,
+              _count: { select: { products: true } },
+            },
           },
         },
+      },
+      directEpics: {
+        include: {
+          owner: true,
+          _count: { select: { stories: true } },
+        },
+        orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
       },
       releases: { orderBy: { plannedDate: "asc" } },
     },
@@ -80,6 +91,11 @@ export default async function ProductDetailPage({
                   <Plus className="h-4 w-4" /> Release
                 </Link>
               </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/epics/new?productId=${product.id}`}>
+                  <Plus className="h-4 w-4" /> Epic
+                </Link>
+              </Button>
               <Button asChild size="sm">
                 <Link href={`/initiatives/new?productId=${product.id}`}>
                   <Plus className="h-4 w-4" /> Initiative
@@ -108,6 +124,9 @@ export default async function ProductDetailPage({
             <TabsTrigger value="initiatives">
               Initiatives ({product.initiatives.length})
             </TabsTrigger>
+            <TabsTrigger value="epics">
+              Epics (direct) ({product.directEpics.length})
+            </TabsTrigger>
             <TabsTrigger value="releases">
               Releases ({product.releases.length})
             </TabsTrigger>
@@ -116,17 +135,53 @@ export default async function ProductDetailPage({
           </TabsList>
           <TabsContent value="initiatives">
             <WorkItemRowList
-              items={product.initiatives.map(({ initiative: i }) => ({
-                id: i.id,
-                name: i.name,
-                href: `/initiatives/${i.id}`,
-                status: i.status,
-                priority: i.priority,
-                targetDate: i.targetDate,
-                owner: i.owner ? { name: i.owner.name, image: i.owner.image } : null,
-                meta: i.type?.name,
-              }))}
+              items={product.initiatives.map(({ initiative: i }) => {
+                const shared = i._count.products > 1;
+                return {
+                  id: i.id,
+                  name: i.name,
+                  href: `/initiatives/${i.id}`,
+                  status: i.status,
+                  priority: i.priority,
+                  targetDate: i.targetDate,
+                  owner: i.owner
+                    ? { name: i.owner.name, image: i.owner.image }
+                    : null,
+                  meta: (
+                    <span className="flex items-center gap-2">
+                      {i.type?.name}
+                      {shared && (
+                        <Badge variant="outline" className="text-[10px]">
+                          Shared {i._count.products} products
+                        </Badge>
+                      )}
+                    </span>
+                  ),
+                };
+              })}
             />
+          </TabsContent>
+          <TabsContent value="epics">
+            {product.directEpics.length === 0 ? (
+              <div className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
+                No epics attached directly to this product yet.
+              </div>
+            ) : (
+              <WorkItemRowList
+                items={product.directEpics.map((e) => ({
+                  id: e.id,
+                  name: e.name,
+                  href: `/epics/${e.id}`,
+                  status: e.status,
+                  priority: e.priority,
+                  targetDate: e.targetDate,
+                  owner: e.owner
+                    ? { name: e.owner.name, image: e.owner.image }
+                    : null,
+                  meta: `${e._count.stories} stor${e._count.stories === 1 ? "y" : "ies"}`,
+                }))}
+              />
+            )}
           </TabsContent>
           <TabsContent value="releases">
             <div className="divide-y rounded-md border bg-card">

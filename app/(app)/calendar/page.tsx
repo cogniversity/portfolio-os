@@ -16,7 +16,7 @@ export default async function CalendarPage({
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-  const [products, types, releases, initiatives, cfValues] = await Promise.all([
+  const [products, types, releases, initiatives, directEpics, cfValues] = await Promise.all([
     prisma.product.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.initiativeType.findMany({
       orderBy: { name: "asc" },
@@ -47,6 +47,20 @@ export default async function CalendarPage({
         type: { select: { id: true, name: true, color: true } },
         owner: { select: { name: true, image: true } },
         products: { select: { productId: true } },
+      },
+    }),
+    prisma.epic.findMany({
+      where: {
+        initiativeId: null,
+        productId: { not: null },
+        ...(sp.productId ? { productId: sp.productId } : {}),
+        OR: [
+          { startDate: { gte: monthStart, lte: monthEnd } },
+          { targetDate: { gte: monthStart, lte: monthEnd } },
+        ],
+      },
+      include: {
+        product: { select: { id: true, name: true, color: true } },
       },
     }),
     prisma.customFieldValue.findMany({
@@ -124,6 +138,33 @@ export default async function CalendarPage({
         href: `/initiatives/${i.id}`,
         color: i.type?.color ?? "#6366f1",
         secondary: i.type?.name,
+      });
+    }
+  }
+
+  for (const e of directEpics) {
+    const color = e.product?.color ?? "#6366f1";
+    const secondary = e.product?.name;
+    if (e.startDate && e.startDate >= monthStart && e.startDate <= monthEnd) {
+      events.push({
+        id: `e-s-${e.id}`,
+        date: e.startDate,
+        kind: "initiative-start",
+        label: `Start: ${e.name}`,
+        href: `/epics/${e.id}`,
+        color,
+        secondary,
+      });
+    }
+    if (e.targetDate && e.targetDate >= monthStart && e.targetDate <= monthEnd) {
+      events.push({
+        id: `e-t-${e.id}`,
+        date: e.targetDate,
+        kind: "initiative-target",
+        label: `Target: ${e.name}`,
+        href: `/epics/${e.id}`,
+        color,
+        secondary,
       });
     }
   }

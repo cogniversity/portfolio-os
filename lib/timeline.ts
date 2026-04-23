@@ -190,8 +190,12 @@ export async function computeShiftImpact(
         });
       }
     }
-    // bubble up parent initiative target
-    if (newEnd && (!epic.initiative.targetDate || newEnd > epic.initiative.targetDate)) {
+    // bubble up parent initiative target (only when epic has an initiative parent)
+    if (
+      epic.initiative &&
+      newEnd &&
+      (!epic.initiative.targetDate || newEnd > epic.initiative.targetDate)
+    ) {
       moved.push({
         kind: "initiative",
         id: epic.initiative.id,
@@ -228,7 +232,12 @@ export async function computeShiftImpact(
         toEnd: newEnd,
       });
     }
-    if (newEnd && (!story.epic.initiative.targetDate || newEnd > story.epic.initiative.targetDate)) {
+    if (
+      story.epic.initiative &&
+      newEnd &&
+      (!story.epic.initiative.targetDate ||
+        newEnd > story.epic.initiative.targetDate)
+    ) {
       moved.push({
         kind: "initiative",
         id: story.epic.initiative.id,

@@ -19,6 +19,8 @@
 - [x] Server actions for create/update/delete with Zod + role checks + activity logging
 - [x] List + detail pages at every level with breadcrumbs
 - [x] Reusable `WorkItemRow`, `HierarchyTree`, `WorkItemForm`, `PageHeader`, `DeleteButton`
+- [x] Flexible Epic parenting — `Epic` may attach to an `Initiative`, a `Product` directly, or both (at-least-one enforced in Zod); surfaced as an "Epics (direct)" tab on product detail, top-level bars on roadmap, start/target events on calendar, and in product-scoped kanban
+- [x] Cross-product initiatives polish — `Shared N products` badge on product detail initiatives tab
 
 ## Trench 3 — Initiative Types & Custom Fields
 - [x] Models: `InitiativeType`, `CustomFieldDefinition`, `CustomFieldValue`

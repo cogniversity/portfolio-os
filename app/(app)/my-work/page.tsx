@@ -64,7 +64,10 @@ export default async function MyWorkPage() {
     }),
     prisma.epic.findMany({
       where: { ownerId: user.id },
-      include: { initiative: { select: { id: true, name: true } } },
+      include: {
+        initiative: { select: { id: true, name: true } },
+        product: { select: { id: true, name: true } },
+      },
       orderBy: [{ targetDate: "asc" }, { priority: "asc" }],
     }),
     prisma.story.findMany({
@@ -111,7 +114,7 @@ export default async function MyWorkPage() {
         status: e.status,
         priority: e.priority,
         targetDate: e.targetDate,
-        parent: e.initiative.name,
+        parent: e.initiative?.name ?? e.product?.name ?? "—",
         role: "owner",
       }),
     ),

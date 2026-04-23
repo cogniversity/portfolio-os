@@ -65,7 +65,12 @@ export default async function KanbanPage({
   if (scope === "product" && productId) {
     const storyRows = await prisma.story.findMany({
       where: {
-        epic: { initiative: { products: { some: { productId } } } },
+        epic: {
+          OR: [
+            { initiative: { products: { some: { productId } } } },
+            { productId },
+          ],
+        },
       },
       include: {
         epic: { select: { id: true, name: true } },
@@ -86,7 +91,12 @@ export default async function KanbanPage({
     }));
 
     const epicRows = await prisma.epic.findMany({
-      where: { initiative: { products: { some: { productId } } } },
+      where: {
+        OR: [
+          { initiative: { products: { some: { productId } } } },
+          { productId },
+        ],
+      },
       include: { owner: { select: { name: true, image: true } } },
       orderBy: [{ priority: "asc" }, { orderIndex: "asc" }],
     });
@@ -100,7 +110,14 @@ export default async function KanbanPage({
 
     const taskRows = await prisma.task.findMany({
       where: {
-        story: { epic: { initiative: { products: { some: { productId } } } } },
+        story: {
+          epic: {
+            OR: [
+              { initiative: { products: { some: { productId } } } },
+              { productId },
+            ],
+          },
+        },
       },
       include: {
         story: { select: { id: true, name: true } },

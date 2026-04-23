@@ -16,7 +16,7 @@ Browser ─► Next.js (App Router)
 See `prisma/schema.prisma`. Core entities:
 
 - **Users/roles**: `User`, `Profile`, `Team`, `UserRole` (LEADER | PRODUCT_MANAGER | TEAM_MEMBER)
-- **Work hierarchy**: `Portfolio` → `Product` ↔ `Initiative` (m2m via `InitiativeProduct`) → `Epic` → `Story` → `Task`
+- **Work hierarchy**: `Portfolio` → `Product` ↔ `Initiative` (m2m via `InitiativeProduct`) → `Epic` → `Story` → `Task`. An `Epic` may attach to an `Initiative`, a `Product` directly, or both — at least one parent is required (enforced in the Zod schema of `app/(app)/epics/actions.ts`).
 - **Types & custom fields**: `InitiativeType`, `CustomFieldDefinition`, `CustomFieldValue` (value stored as JSON)
 - **Releases**: `Release` with `ReleaseEpic` / `ReleaseStory` cherry-pick joins
 - **Collab**: `Comment` (polymorphic on `itemType` + `itemId`), `ActivityLog` (same polymorphism)
@@ -59,4 +59,16 @@ The roadmap UI calls `previewShiftAction` on drag end, displays the impact in `T
 
 ## Seed
 
-`prisma/seed.ts` creates 9 users (3 per role), 2 teams, 2 portfolios, 4 products, 12 initiatives spanning all 6 built-in types (Customization, Variant, Demo, Event, PoV, Other), with epics/stories/tasks and 12 releases (3 per product) — enough to exercise roadmap, kanban, calendar, dashboard, and every report.
+`prisma/seed.ts` creates 9 users (3 per role), 2 teams, 2 portfolios, 4 products, 12 initiatives spanning all 6 built-in types (Customization, Variant, Demo, Event, PoV, Other), with epics/stories/tasks and 12 releases (3 per product) — enough to exercise roadmap, kanban, calendar, dashboard, and every report. One product-direct epic is also created (no initiative parent) to exercise the alternate parenting path.
+
+## Flexible Epic parenting
+
+An `Epic` has two nullable parents — `initiativeId` and `productId` — with at-least-one-present enforced at the application layer rather than via a DB CHECK constraint, keeping the migration trivial. This lets teams model work that belongs to a product but isn't part of any strategic initiative (platform hardening, tech debt, operational hygiene) while cross-product initiatives remain fully supported via the existing `InitiativeProduct` m2m.
+
+Downstream views fan out additively:
+
+- **Roadmap** renders product-direct epics as top-level bars in the product's swimlane alongside initiatives (synthetic `InitiativeRow` with empty `epics`).
+- **Kanban** product-scope queries `OR` on `initiative.products.some` and direct `productId` for epics / stories / tasks.
+- **Calendar** emits start/target events for product-direct epics mirroring the initiative block.
+- **Product detail** has an "Epics (direct)" tab and an "Add epic" shortcut that pre-fills `?productId=`.
+- **Initiatives tab** on product detail shows a `Shared N products` badge for cross-product initiatives.

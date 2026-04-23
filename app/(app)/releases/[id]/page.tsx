@@ -26,7 +26,9 @@ export default async function ReleaseDetailPage({
     include: {
       product: true,
       epics: {
-        include: { epic: { include: { owner: true, initiative: true } } },
+        include: {
+          epic: { include: { owner: true, initiative: true, product: true } },
+        },
       },
       stories: {
         include: {
@@ -39,16 +41,22 @@ export default async function ReleaseDetailPage({
 
   const candidateEpics = await prisma.epic.findMany({
     where: {
-      initiative: {
-        products: { some: { productId: release.productId } },
-      },
+      OR: [
+        { initiative: { products: { some: { productId: release.productId } } } },
+        { productId: release.productId },
+      ],
     },
-    include: { initiative: true },
+    include: { initiative: true, product: true },
     orderBy: { name: "asc" },
   });
   const candidateStories = await prisma.story.findMany({
     where: {
-      epic: { initiative: { products: { some: { productId: release.productId } } } },
+      epic: {
+        OR: [
+          { initiative: { products: { some: { productId: release.productId } } } },
+          { productId: release.productId },
+        ],
+      },
     },
     include: { epic: true },
     orderBy: { name: "asc" },
@@ -62,7 +70,7 @@ export default async function ReleaseDetailPage({
     priority: epic.priority,
     targetDate: epic.targetDate,
     owner: epic.owner ? { name: epic.owner.name, image: epic.owner.image } : null,
-    meta: epic.initiative.name,
+    meta: epic.initiative?.name ?? epic.product?.name ?? "—",
   }));
 
   const storyItems = release.stories.map(({ story }) => ({
@@ -139,7 +147,7 @@ export default async function ReleaseDetailPage({
                 epics={candidateEpics.map((e) => ({
                   id: e.id,
                   name: e.name,
-                  initiative: e.initiative.name,
+                  initiative: e.initiative?.name ?? e.product?.name ?? "—",
                   selected: release.epics.some((re) => re.epicId === e.id),
                 }))}
                 stories={candidateStories.map((s) => ({

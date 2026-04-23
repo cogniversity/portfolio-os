@@ -4,45 +4,79 @@ import { prisma } from "@/lib/db";
 import { assertCanWrite } from "@/lib/rbac";
 import { PageHeader } from "@/components/work/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { WorkItemForm } from "@/components/work/work-item-form";
+import { EpicForm } from "@/components/work/epic-form";
 import { createEpic } from "../actions";
 
 export default async function NewEpicPage({
   searchParams,
 }: {
-  searchParams: Promise<{ initiativeId?: string }>;
+  searchParams: Promise<{ initiativeId?: string; productId?: string }>;
 }) {
   await assertCanWrite();
-  const { initiativeId } = await searchParams;
-  if (!initiativeId) redirect("/initiatives");
-  const [owners, initiative] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
-    prisma.initiative.findUnique({ where: { id: initiativeId } }),
-  ]);
-  if (!initiative) redirect("/initiatives");
+  const { initiativeId, productId } = await searchParams;
+  if (!initiativeId && !productId) redirect("/initiatives");
 
-  async function action(input: any) {
+  const [owners, initiatives, products, initiative, product] = await Promise.all([
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.initiative.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.product.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    initiativeId
+      ? prisma.initiative.findUnique({ where: { id: initiativeId } })
+      : Promise.resolve(null),
+    productId
+      ? prisma.product.findUnique({ where: { id: productId } })
+      : Promise.resolve(null),
+  ]);
+
+  if (initiativeId && !initiative) redirect("/initiatives");
+  if (productId && !product) redirect("/products");
+
+  async function action(input: Parameters<typeof createEpic>[0]) {
     "use server";
-    return createEpic({ ...input, initiativeId });
+    return createEpic(input);
   }
+
+  const contextName = initiative?.name ?? product?.name ?? "";
 
   return (
     <div>
       <PageHeader
-        title={`New epic in ${initiative.name}`}
+        title={contextName ? `New epic in ${contextName}` : "New epic"}
         breadcrumbs={
-          <>
-            <Link href="/initiatives">Initiatives</Link> /{" "}
-            <Link href={`/initiatives/${initiative.id}`}>{initiative.name}</Link>
-          </>
+          initiative ? (
+            <>
+              <Link href="/initiatives">Initiatives</Link> /{" "}
+              <Link href={`/initiatives/${initiative.id}`}>{initiative.name}</Link>
+            </>
+          ) : product ? (
+            <>
+              <Link href="/products">Products</Link> /{" "}
+              <Link href={`/products/${product.id}`}>{product.name}</Link>
+            </>
+          ) : null
         }
       />
       <div className="container max-w-2xl py-6">
         <Card>
           <CardContent className="pt-6">
-            <WorkItemForm
+            <EpicForm
               action={action}
               owners={owners}
+              initiatives={initiatives}
+              products={products}
+              initial={{
+                initiativeId: initiativeId ?? null,
+                productId: productId ?? null,
+              }}
               submitLabel="Create epic"
               onSuccessHref={(id) => `/epics/${id}`}
             />
