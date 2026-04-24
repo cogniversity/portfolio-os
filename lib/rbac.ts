@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import type { Role, SessionUser } from "@/lib/auth-types";
 
@@ -15,10 +17,48 @@ export class UnauthorizedError extends Error {
   }
 }
 
+/** Reject path traversal or absolute URLs. */
+function safeAppPath(path: string, search: string): string {
+  const full = (path + search) || "/dashboard";
+  if (!full.startsWith("/") || full.startsWith("//")) return "/dashboard";
+  return full.length > 2000 ? "/dashboard" : full;
+}
+
+/**
+ * For session expiry or missing auth, redirect to sign-in with context instead of
+ * throwing (which surfaces as opaque errors/404s in some flows).
+ */
+async function redirectToLogin() {
+  const h = await headers();
+  const referer = h.get("referer");
+  let callback = "/dashboard";
+  if (referer) {
+    try {
+      const appOrigin =
+        process.env.AUTH_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+        process.env.NEXTAUTH_URL ||
+        "http://localhost:3000";
+      const u = new URL(referer);
+      const origin = new URL(appOrigin);
+      if (u.origin === origin.origin) {
+        callback = safeAppPath(u.pathname, u.search);
+      }
+    } catch {
+      /* keep default */
+    }
+  }
+  const qs = new URLSearchParams({ reason: "session_expired" });
+  qs.set("callbackUrl", callback);
+  redirect(`/login?${qs.toString()}`);
+}
+
 export async function requireUser(): Promise<SessionUser> {
   const session = await auth();
-  if (!session?.user) throw new UnauthorizedError();
-  return session.user as SessionUser;
+  if (!session?.user) {
+    await redirectToLogin();
+  }
+  return (session as NonNullable<typeof session>).user as SessionUser;
 }
 
 export async function requireRole(...roles: Role[]): Promise<SessionUser> {
@@ -56,6 +96,8 @@ export function isLeaderOnly(user: SessionUser) {
 
 export async function assertCanWrite() {
   const user = await requireUser();
-  if (!canWrite(user)) throw new ForbiddenError("Write access denied");
+  if (!canWrite(user)) {
+    redirect("/dashboard?reason=read_only");
+  }
   return user;
 }

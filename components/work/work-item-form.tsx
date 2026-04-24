@@ -79,14 +79,26 @@ export function WorkItemForm({
       if (k.startsWith("extra.")) extra[k.slice(6)] = v === "" ? null : v;
     }
     start(async () => {
-      const res = await action({ ...state, ...extra });
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
+      try {
+        const res = await action({ ...state, ...extra });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Saved");
+        if (onSuccessHref) router.push(onSuccessHref.replace("{id}", res.id));
+        else router.refresh();
+      } catch (e) {
+        const isRedirect =
+          e &&
+          typeof e === "object" &&
+          "digest" in e &&
+          String((e as { digest: unknown }).digest).includes("NEXT_REDIRECT");
+        if (isRedirect) return;
+        toast.error(
+          "We couldn’t save your changes. If you were signed out, sign in and try again.",
+        );
       }
-      toast.success("Saved");
-      if (onSuccessHref) router.push(onSuccessHref.replace("{id}", res.id));
-      else router.refresh();
     });
   }
 

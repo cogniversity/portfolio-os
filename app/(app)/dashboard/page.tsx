@@ -29,7 +29,12 @@ function endOfQuarter(d: Date) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ g?: string; productId?: string; typeId?: string }>;
+  searchParams: Promise<{
+    g?: string;
+    productId?: string;
+    typeId?: string;
+    reason?: string;
+  }>;
 }) {
   await requireUser();
   const sp = await searchParams;
@@ -135,7 +140,16 @@ export default async function DashboardPage({
         title="Dashboard"
         description="What's published, what's planned, and what's at risk."
       />
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 space-y-6 overflow-auto p-6">
+        {sp.reason === "read_only" && (
+          <p
+            className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100"
+            role="status"
+          >
+            That page requires product-manager access. You can still browse and update items you own or
+            are assigned to elsewhere.
+          </p>
+        )}
         <div className="grid gap-3 md:grid-cols-4">
           <Kpi
             icon={<CheckCircle2 className="h-4 w-4" />}

@@ -7,11 +7,19 @@ import { Rocket } from "lucide-react";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
+  searchParams: Promise<{
+    callbackUrl?: string;
+    error?: string;
+    reason?: string;
+  }>;
 }) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
-  const { callbackUrl, error } = await searchParams;
+  const { callbackUrl, error, reason } = await searchParams;
+  const sessionMessage =
+    reason === "session_expired"
+      ? "Your session has expired or is no longer valid. Please sign in again."
+      : undefined;
   const googleEnabled = !!(
     process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
   );
@@ -28,7 +36,7 @@ export default async function LoginPage({
         <LoginForm
           callbackUrl={callbackUrl ?? "/dashboard"}
           googleEnabled={googleEnabled}
-          initialError={error}
+          initialError={error ?? sessionMessage}
         />
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}

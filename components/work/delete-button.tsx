@@ -53,15 +53,27 @@ export function DeleteButton({
             disabled={pending}
             onClick={() =>
               start(async () => {
-                const res = await action();
-                if (!res.ok) {
-                  toast.error(res.error ?? "Failed");
-                  return;
+                try {
+                  const res = await action();
+                  if (!res.ok) {
+                    toast.error(res.error ?? "Failed");
+                    return;
+                  }
+                  toast.success("Deleted");
+                  setOpen(false);
+                  if (redirectTo) router.push(redirectTo);
+                  else router.refresh();
+                } catch (e) {
+                  const isRedirect =
+                    e &&
+                    typeof e === "object" &&
+                    "digest" in e &&
+                    String((e as { digest: unknown }).digest).includes("NEXT_REDIRECT");
+                  if (isRedirect) return;
+                  toast.error(
+                    "Request failed. If you were signed out, sign in and try again.",
+                  );
                 }
-                toast.success("Deleted");
-                setOpen(false);
-                if (redirectTo) router.push(redirectTo);
-                else router.refresh();
               })
             }
           >

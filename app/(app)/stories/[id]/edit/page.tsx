@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser, canWriteAssigned } from "@/lib/rbac";
 import { PageHeader } from "@/components/work/page-header";
@@ -19,7 +19,9 @@ export default async function EditStoryPage({
     prisma.user.findMany({ select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
   ]);
   if (!story) notFound();
-  if (!canWriteAssigned(user, story.ownerId, story.assigneeId)) notFound();
+  if (!canWriteAssigned(user, story.ownerId, story.assigneeId)) {
+    redirect(`/stories/${id}`);
+  }
 
   async function action(input: any) {
     "use server";
