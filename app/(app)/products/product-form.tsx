@@ -49,7 +49,7 @@ export function ProductForm({
       owners={owners}
       initial={initial}
       submitLabel={submitLabel}
-      onSuccessHref={(id) => `/products/${id}`}
+      onSuccessHref="/products/{id}"
       aiContext={{ kind: "PRODUCT" }}
       extraFields={
         <>

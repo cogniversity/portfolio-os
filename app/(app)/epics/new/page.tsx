@@ -78,7 +78,7 @@ export default async function NewEpicPage({
                 productId: productId ?? null,
               }}
               submitLabel="Create epic"
-              onSuccessHref={(id) => `/epics/${id}`}
+              onSuccessHref="/epics/{id}"
             />
           </CardContent>
         </Card>

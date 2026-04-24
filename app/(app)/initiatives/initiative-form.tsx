@@ -83,7 +83,7 @@ export function InitiativeForm({
       owners={owners}
       initial={initial}
       submitLabel={submitLabel}
-      onSuccessHref={(id) => `/initiatives/${id}`}
+      onSuccessHref="/initiatives/{id}"
       aiContext={{ kind: "INITIATIVE" }}
       extraFields={
         <>

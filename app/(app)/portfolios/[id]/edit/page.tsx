@@ -48,7 +48,7 @@ export default async function EditPortfolioPage({
               owners={owners}
               initial={p}
               submitLabel="Save changes"
-              onSuccessHref={() => `/portfolios/${id}`}
+              onSuccessHref={`/portfolios/${id}`}
               aiContext={{ kind: "PORTFOLIO" }}
             />
           </CardContent>

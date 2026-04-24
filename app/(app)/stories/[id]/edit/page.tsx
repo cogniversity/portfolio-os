@@ -41,7 +41,7 @@ export default async function EditStoryPage({
               owners={owners}
               initial={story}
               submitLabel="Save changes"
-              onSuccessHref={() => `/stories/${id}`}
+              onSuccessHref={`/stories/${id}`}
             />
           </CardContent>
         </Card>

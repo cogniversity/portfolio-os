@@ -24,7 +24,7 @@ export function StoryForm({
   owners: Owner[];
   initial?: Partial<BaseItemInitial> & { assigneeId?: string | null };
   submitLabel?: string;
-  onSuccessHref?: (id: string) => string;
+  onSuccessHref?: string;
 }) {
   const [assigneeId, setAssigneeId] = useState<string>(initial?.assigneeId ?? "__none");
 
@@ -38,7 +38,7 @@ export function StoryForm({
       owners={owners}
       initial={initial}
       submitLabel={submitLabel}
-      onSuccessHref={onSuccessHref ?? ((id) => `/stories/${id}`)}
+      onSuccessHref={onSuccessHref ?? "/stories/{id}"}
       aiContext={{ kind: "STORY" }}
       extraFields={
         <div className="space-y-2">

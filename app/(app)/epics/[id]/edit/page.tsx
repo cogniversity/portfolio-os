@@ -59,7 +59,7 @@ export default async function EditEpicPage({
               products={products}
               initial={epic}
               submitLabel="Save changes"
-              onSuccessHref={() => `/epics/${id}`}
+              onSuccessHref={`/epics/${id}`}
             />
           </CardContent>
         </Card>

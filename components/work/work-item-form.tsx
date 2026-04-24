@@ -56,7 +56,7 @@ export function WorkItemForm({
   owners: Owner[];
   submitLabel?: string;
   extraFields?: React.ReactNode;
-  onSuccessHref?: (id: string) => string;
+  onSuccessHref?: string;
   aiContext?: AiContext;
 }) {
   const router = useRouter();
@@ -85,7 +85,7 @@ export function WorkItemForm({
         return;
       }
       toast.success("Saved");
-      if (onSuccessHref) router.push(onSuccessHref(res.id));
+      if (onSuccessHref) router.push(onSuccessHref.replace("{id}", res.id));
       else router.refresh();
     });
   }

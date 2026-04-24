@@ -39,7 +39,7 @@ export function EpicForm({
     productId?: string | null;
   };
   submitLabel?: string;
-  onSuccessHref?: (id: string) => string;
+  onSuccessHref?: string;
 }) {
   const [initiativeId, setInitiativeId] = useState<string | null>(
     initial?.initiativeId ?? null,
