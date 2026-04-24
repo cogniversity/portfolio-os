@@ -35,6 +35,8 @@ export default async function EditProductPage({
     <div>
       <PageHeader
         title={`Edit ${p.name}`}
+        backHref={`/products/${id}`}
+        backLabel="View product"
         breadcrumbs={<><Link href="/products">Products</Link> / <Link href={`/products/${id}`}>{p.name}</Link></>}
       />
       <div className="container max-w-2xl space-y-4 py-6">

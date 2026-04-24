@@ -34,6 +34,8 @@ export default async function EditReleasePage({
     <div>
       <PageHeader
         title={`Edit ${release.name}`}
+        backHref={`/releases/${id}`}
+        backLabel="View release"
         breadcrumbs={
           <>
             <Link href="/releases">Releases</Link> /{" "}

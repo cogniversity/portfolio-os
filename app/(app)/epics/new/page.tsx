@@ -51,6 +51,14 @@ export default async function NewEpicPage({
     <div>
       <PageHeader
         title={contextName ? `New epic in ${contextName}` : "New epic"}
+        backHref={
+          initiative
+            ? `/initiatives/${initiative.id}`
+            : product
+              ? `/products/${product.id}`
+              : "/initiatives"
+        }
+        backLabel={initiative ? "View initiative" : product ? "View product" : "Back"}
         breadcrumbs={
           initiative ? (
             <>

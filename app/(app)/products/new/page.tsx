@@ -28,7 +28,12 @@ export default async function NewProductPage({
 
   return (
     <div>
-      <PageHeader title="New product" breadcrumbs={<Link href="/products">Products</Link>} />
+      <PageHeader
+        title="New product"
+        backHref="/products"
+        backLabel="All products"
+        breadcrumbs={<Link href="/products">Products</Link>}
+      />
       <div className="container max-w-2xl py-6">
         <Card>
           <CardContent className="pt-6">

@@ -29,7 +29,12 @@ export default async function NewInitiativePage({
 
   return (
     <div>
-      <PageHeader title="New initiative" breadcrumbs={<Link href="/initiatives">Initiatives</Link>} />
+      <PageHeader
+        title="New initiative"
+        backHref="/initiatives"
+        backLabel="All initiatives"
+        breadcrumbs={<Link href="/initiatives">Initiatives</Link>}
+      />
       <div className="container max-w-2xl py-6">
         <Card>
           <CardContent className="pt-6">

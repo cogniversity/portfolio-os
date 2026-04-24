@@ -50,6 +50,8 @@ export default async function EditInitiativePage({
     <div>
       <PageHeader
         title={`Edit ${init.name}`}
+        backHref={`/initiatives/${id}`}
+        backLabel="View initiative"
         breadcrumbs={<><Link href="/initiatives">Initiatives</Link> / <Link href={`/initiatives/${id}`}>{init.name}</Link></>}
       />
       <div className="container max-w-2xl space-y-4 py-6">

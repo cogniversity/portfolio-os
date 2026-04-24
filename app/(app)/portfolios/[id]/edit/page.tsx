@@ -38,6 +38,8 @@ export default async function EditPortfolioPage({
     <div>
       <PageHeader
         title={`Edit ${p.name}`}
+        backHref={`/portfolios/${id}`}
+        backLabel="View portfolio"
         breadcrumbs={<><Link href="/portfolios">Portfolios</Link> / <Link href={`/portfolios/${id}`}>{p.name}</Link></>}
       />
       <div className="container max-w-2xl space-y-4 py-6">

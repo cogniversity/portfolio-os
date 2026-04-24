@@ -15,6 +15,8 @@ export default async function NewTypePage() {
     <div>
       <PageHeader
         title="New initiative type"
+        backHref="/settings/initiative-types"
+        backLabel="Initiative types"
         breadcrumbs={<Link href="/settings/initiative-types">Initiative Types</Link>}
       />
       <div className="container max-w-3xl py-6">

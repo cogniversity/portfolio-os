@@ -34,7 +34,11 @@ export default async function EditStoryPage({
 
   return (
     <div>
-      <PageHeader title={`Edit ${story.name}`} />
+      <PageHeader
+        title={`Edit ${story.name}`}
+        backHref={`/stories/${id}`}
+        backLabel="View story"
+      />
       <div className="container max-w-2xl space-y-4 py-6">
         <Card>
           <CardContent className="pt-6">

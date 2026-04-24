@@ -20,7 +20,12 @@ export default async function NewPortfolioPage() {
 
   return (
     <div>
-      <PageHeader title="New portfolio" breadcrumbs={<Link href="/portfolios">Portfolios</Link>} />
+      <PageHeader
+        title="New portfolio"
+        backHref="/portfolios"
+        backLabel="All portfolios"
+        breadcrumbs={<Link href="/portfolios">Portfolios</Link>}
+      />
       <div className="container max-w-2xl py-6">
         <Card>
           <CardContent className="pt-6">

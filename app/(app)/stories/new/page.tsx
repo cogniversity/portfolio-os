@@ -33,6 +33,8 @@ export default async function NewStoryPage({
     <div>
       <PageHeader
         title={`New story in ${epic.name}`}
+        backHref={`/epics/${epicId}`}
+        backLabel="View epic"
         breadcrumbs={
           <>
             {epic.initiative ? (

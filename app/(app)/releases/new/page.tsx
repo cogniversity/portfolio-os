@@ -22,7 +22,12 @@ export default async function NewReleasePage({
 
   return (
     <div>
-      <PageHeader title="New release" breadcrumbs={<Link href="/releases">Releases</Link>} />
+      <PageHeader
+        title="New release"
+        backHref={productId ? `/products/${productId}` : "/releases"}
+        backLabel={productId ? "View product" : "All releases"}
+        breadcrumbs={<Link href="/releases">Releases</Link>}
+      />
       <div className="container max-w-2xl py-6">
         <Card>
           <CardContent className="pt-6">

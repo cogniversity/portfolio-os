@@ -48,7 +48,11 @@ export default async function EditEpicPage({
 
   return (
     <div>
-      <PageHeader title={`Edit ${epic.name}`} />
+      <PageHeader
+        title={`Edit ${epic.name}`}
+        backHref={`/epics/${id}`}
+        backLabel="View epic"
+      />
       <div className="container max-w-2xl space-y-4 py-6">
         <Card>
           <CardContent className="pt-6">

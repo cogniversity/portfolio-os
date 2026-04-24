@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -6,12 +8,17 @@ export function PageHeader({
   action,
   className,
   breadcrumbs,
+  backHref,
+  backLabel = "Back",
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
   breadcrumbs?: React.ReactNode;
+  /** e.g. detail page — leaves edit without using the sidebar */
+  backHref?: string;
+  backLabel?: string;
 }) {
   return (
     <div
@@ -20,6 +27,17 @@ export function PageHeader({
         className,
       )}
     >
+      {backHref && (
+        <div className="mb-2">
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            {backLabel}
+          </Link>
+        </div>
+      )}
       {breadcrumbs && (
         <div className="mb-1 text-xs text-muted-foreground">{breadcrumbs}</div>
       )}

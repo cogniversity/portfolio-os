@@ -43,6 +43,8 @@ export default async function EditTypePage({
     <div>
       <PageHeader
         title={`Edit ${type.name}`}
+        backHref="/settings/initiative-types"
+        backLabel="Initiative types"
         breadcrumbs={<Link href="/settings/initiative-types">Initiative Types</Link>}
       />
       <div className="container max-w-3xl space-y-4 py-6">
