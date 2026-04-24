@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertCanWrite } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity";
-import { baseItemSchema } from "@/lib/zod-schemas";
+import { baseItemSchema, priorityEnum, workStatusEnum } from "@/lib/zod-schemas";
 
 const epicSchema = baseItemSchema
   .extend({
@@ -100,6 +100,99 @@ export async function updateEpic(id: string, input: z.input<typeof epicSchema>) 
   if (productId && productId !== prev.productId) revalidatePath(`/products/${productId}`);
   revalidatePath(`/epics/${id}`);
   return { ok: true as const, id };
+}
+
+const clearableDate = z
+  .union([z.null(), z.string(), z.date()])
+  .transform((v) => {
+    if (v === null || v === "") return null;
+    const d = v instanceof Date ? v : new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  });
+
+const epicBulkPatchSchema = z
+  .object({
+    ownerId: z.string().nullable().optional(),
+    startDate: clearableDate.optional(),
+    targetDate: clearableDate.optional(),
+    status: workStatusEnum.optional(),
+    priority: priorityEnum.optional(),
+  })
+  .refine(
+    (p) =>
+      p.ownerId !== undefined ||
+      p.startDate !== undefined ||
+      p.targetDate !== undefined ||
+      p.status !== undefined ||
+      p.priority !== undefined,
+    { message: "At least one field is required" },
+  );
+
+export async function bulkUpdateEpics(
+  input: {
+    epicIds: string[];
+    /** When set, every epic must belong to this initiative (stricter than plain id list). */
+    initiativeId?: string;
+    /** When set, every epic must be linked to this product. */
+    productId?: string;
+  } & z.input<typeof epicBulkPatchSchema>,
+) {
+  const user = await assertCanWrite();
+  const { epicIds, initiativeId, productId, ...rawPatch } = input;
+  const parsed = epicBulkPatchSchema.safeParse(rawPatch);
+  if (!parsed.success) return { ok: false as const, error: "Nothing to update" };
+  const patch = parsed.data;
+  if (epicIds.length === 0) return { ok: false as const, error: "No epics selected" };
+
+  const epics = await prisma.epic.findMany({
+    where: {
+      id: { in: epicIds },
+      ...(initiativeId !== undefined ? { initiativeId } : {}),
+      ...(productId !== undefined ? { productId } : {}),
+    },
+  });
+  if (epics.length !== epicIds.length) {
+    return {
+      ok: false as const,
+      error: "One or more epics were not found, or are not in this scope",
+    };
+  }
+
+  const data: Record<string, unknown> = {};
+  if (patch.ownerId !== undefined) data.ownerId = patch.ownerId;
+  if (patch.startDate !== undefined) data.startDate = patch.startDate;
+  if (patch.targetDate !== undefined) data.targetDate = patch.targetDate;
+  if (patch.status !== undefined) data.status = patch.status;
+  if (patch.priority !== undefined) data.priority = patch.priority;
+
+  await prisma.$transaction(
+    epicIds.map((id) =>
+      prisma.epic.update({
+        where: { id },
+        data,
+      }),
+    ),
+  );
+
+  const after = await prisma.epic.findMany({ where: { id: { in: epicIds } } });
+  const byId = new Map(after.map((e) => [e.id, e]));
+  for (const e of epics) {
+    const next = byId.get(e.id);
+    if (!next) continue;
+    await logActivity({
+      itemType: "EPIC",
+      itemId: e.id,
+      actorId: user.id,
+      kind: "UPDATED",
+      summary: `Bulk update (${Object.keys(data).join(", ")})`,
+      diff: { prev: e, next },
+    });
+    if (e.initiativeId) revalidatePath(`/initiatives/${e.initiativeId}`);
+    if (e.productId) revalidatePath(`/products/${e.productId}`);
+    revalidatePath(`/epics/${e.id}`);
+  }
+
+  return { ok: true as const, count: epicIds.length };
 }
 
 export async function deleteEpic(id: string) {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { requireUser, canWrite } from "@/lib/rbac";
+import { requireUser, canWrite, canWriteAssigned } from "@/lib/rbac";
 import { PageHeader } from "@/components/work/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { OwnerAvatar } from "@/components/work/owner-avatar";
 import { formatDate } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HierarchyTree, type TreeNode } from "@/components/work/hierarchy-tree";
+import { BulkWorkList } from "@/components/work/bulk-work-list";
 import { ActivityFeed } from "@/components/collab/activity-feed";
 import { Comments } from "@/components/collab/comments";
 import { SuggestChildrenButton } from "@/components/ai/suggest-children-button";
@@ -24,29 +25,44 @@ export default async function InitiativeDetailPage({
 }) {
   const { id } = await params;
   const user = await requireUser();
-  const init = await prisma.initiative.findUnique({
-    where: { id },
-    include: {
-      owner: true,
-      type: { include: { fields: { orderBy: { orderIndex: "asc" } } } },
-      products: { include: { product: true } },
-      fieldValues: { include: { definition: true } },
-      epics: {
-        include: {
-          owner: true,
-          stories: {
-            include: {
-              owner: true,
-              assignee: true,
-              tasks: { include: { owner: true, assignee: true } },
+  const [init, users] = await Promise.all([
+    prisma.initiative.findUnique({
+      where: { id },
+      include: {
+        owner: true,
+        type: { include: { fields: { orderBy: { orderIndex: "asc" } } } },
+        products: { include: { product: true } },
+        fieldValues: { include: { definition: true } },
+        epics: {
+          include: {
+            owner: true,
+            _count: { select: { stories: true } },
+            stories: {
+              include: {
+                owner: true,
+                assignee: true,
+                tasks: { include: { owner: true, assignee: true } },
+              },
             },
           },
+          orderBy: { orderIndex: "asc" },
         },
-        orderBy: { orderIndex: "asc" },
       },
-    },
-  });
+    }),
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
   if (!init) notFound();
+
+  const canBulkEpics = canWrite(user) && init.epics.length > 0;
+
+  const allStories = init.epics.flatMap((e) => e.stories);
+  const canBulkStories =
+    allStories.length > 0 &&
+    (canWrite(user) ||
+      allStories.some((s) => canWriteAssigned(user, s.ownerId, s.assigneeId)));
 
   const treeNodes: TreeNode[] = init.epics.map((e) => ({
     id: e.id,
@@ -173,7 +189,69 @@ export default async function InitiativeDetailPage({
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
           <TabsContent value="hierarchy">
-            <HierarchyTree nodes={treeNodes} />
+            <div className="space-y-8">
+              {init.epics.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {canBulkEpics ? "Bulk update epics" : "Epics"}
+                  </div>
+                  <BulkWorkList
+                    kind="epic"
+                    initiativeId={init.id}
+                    canBulk={canBulkEpics}
+                    users={users}
+                    items={init.epics.map((e) => ({
+                      id: e.id,
+                      name: e.name,
+                      href: `/epics/${e.id}`,
+                      status: e.status,
+                      priority: e.priority,
+                      targetDate: e.targetDate,
+                      owner: e.owner
+                        ? { name: e.owner.name, image: e.owner.image }
+                        : null,
+                      meta: `${e._count.stories} stor${e._count.stories === 1 ? "y" : "ies"}`,
+                    }))}
+                  />
+                </div>
+              )}
+              {allStories.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {canBulkStories ? "Bulk update stories" : "Stories"}
+                  </div>
+                  <BulkWorkList
+                    kind="story"
+                    initiativeId={init.id}
+                    canBulk={canBulkStories}
+                    users={users}
+                    items={init.epics.flatMap((e) =>
+                      e.stories.map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        href: `/stories/${s.id}`,
+                        status: s.status,
+                        priority: s.priority,
+                        targetDate: s.targetDate,
+                        owner: (s.assignee ?? s.owner)
+                          ? {
+                              name: (s.assignee ?? s.owner)!.name,
+                              image: (s.assignee ?? s.owner)!.image,
+                            }
+                          : null,
+                        meta: `${e.name} · ${s.tasks.length} task${s.tasks.length === 1 ? "" : "s"}`,
+                      })),
+                    )}
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Full hierarchy
+                </div>
+                <HierarchyTree nodes={treeNodes} />
+              </div>
+            </div>
           </TabsContent>
           {init.type && init.type.fields.length > 0 && (
             <TabsContent value="fields">

@@ -3,7 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { format, addDays, differenceInCalendarDays } from "date-fns";
+import {
+  addDays,
+  addQuarters,
+  differenceInCalendarDays,
+  endOfQuarter,
+  format,
+  startOfQuarter,
+} from "date-fns";
 import { Rocket } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -88,6 +95,9 @@ export function RoadmapView({
   initiatives,
   releases,
   canEdit,
+  embedPath,
+  timeWindow = "auto",
+  hideProductFilter = false,
 }: {
   granularity: Granularity;
   filters: { productId: string; typeId: string; ownerId: string; status: string };
@@ -97,6 +107,12 @@ export function RoadmapView({
   initiatives: InitiativeRow[];
   releases: ReleaseMarker[];
   canEdit: boolean;
+  /** When set, filter/granularity changes navigate with this path’s query (e.g. /products/xyz). */
+  embedPath?: string;
+  /** auto: time span from data. threeQuarters: previous, current, and next calendar quarter (only when granularity is quarter). */
+  timeWindow?: "auto" | "threeQuarters";
+  /** Hide the product filter (e.g. product tab where scope is fixed). */
+  hideProductFilter?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -110,14 +126,22 @@ export function RoadmapView({
     };
   } | null>(null);
 
-  // Time range: earliest startDate → latest endDate, with padding
+  // Time range: three-quarters window, or earliest→latest from data with padding
   const { range, today } = useMemo(() => {
+    const now = new Date();
+    if (timeWindow === "threeQuarters" && granularity === "quarter") {
+      const start = startOfQuarter(addQuarters(now, -1));
+      const end = endOfQuarter(addQuarters(now, 1));
+      return {
+        range: buildTimelineRange(start, end, granularity),
+        today: now,
+      };
+    }
     const all = [
       ...initiatives.flatMap((i) => [i.startDate, i.endDate]),
       ...initiatives.flatMap((i) => i.epics.flatMap((e) => [e.startDate, e.endDate])),
       ...releases.map((r) => r.plannedDate),
     ].filter(Boolean) as Date[];
-    const now = new Date();
     const min =
       all.length > 0
         ? new Date(Math.min(...all.map((d) => d.getTime())))
@@ -134,7 +158,7 @@ export function RoadmapView({
       range: buildTimelineRange(padded.start, padded.end, granularity),
       today: now,
     };
-  }, [initiatives, releases, granularity]);
+  }, [initiatives, releases, granularity, timeWindow]);
 
   const totalWidth = range.length * COL_WIDTH[granularity];
 
@@ -160,7 +184,8 @@ export function RoadmapView({
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     if (v && v !== "__all") params.set(k, v);
     else params.delete(k);
-    router.push(`/roadmap?${params.toString()}`);
+    const base = embedPath ?? "/roadmap";
+    router.push(`${base}?${params.toString()}`);
   }
 
   async function handleDragEnd(
@@ -203,7 +228,13 @@ export function RoadmapView({
 
   return (
     <>
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b bg-background/95 px-6 py-3 backdrop-blur">
+      <div
+        className={cn(
+          "sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b bg-background/95 py-3 backdrop-blur",
+          embedPath ? "px-3" : "px-6",
+        )}
+      >
+        {!hideProductFilter ? (
         <Filter
           label="Product"
           value={filters.productId}
@@ -213,6 +244,7 @@ export function RoadmapView({
             ...products.map((p) => ({ value: p.id, label: p.name })),
           ]}
         />
+        ) : null}
         <Filter
           label="Type"
           value={filters.typeId}

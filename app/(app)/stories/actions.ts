@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { canWriteAssigned, requireUser } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity";
-import { baseItemSchema } from "@/lib/zod-schemas";
+import { baseItemSchema, priorityEnum, workStatusEnum } from "@/lib/zod-schemas";
 
 const storySchema = baseItemSchema.extend({
   epicId: z.string(),
@@ -99,6 +99,126 @@ export async function deleteStory(id: string) {
   });
   revalidatePath(`/epics/${s.epicId}`);
   return { ok: true as const };
+}
+
+const clearableDate = z
+  .union([z.null(), z.string(), z.date()])
+  .transform((v) => {
+    if (v === null || v === "") return null;
+    const d = v instanceof Date ? v : new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  });
+
+const storyBulkPatchSchema = z
+  .object({
+    ownerId: z.string().nullable().optional(),
+    assigneeId: z.string().nullable().optional(),
+    startDate: clearableDate.optional(),
+    targetDate: clearableDate.optional(),
+    status: workStatusEnum.optional(),
+    priority: priorityEnum.optional(),
+  })
+  .refine(
+    (p) =>
+      p.ownerId !== undefined ||
+      p.assigneeId !== undefined ||
+      p.startDate !== undefined ||
+      p.targetDate !== undefined ||
+      p.status !== undefined ||
+      p.priority !== undefined,
+    { message: "At least one field is required" },
+  );
+
+export async function bulkUpdateStories(
+  input: z.input<typeof storyBulkPatchSchema> &
+    { storyIds: string[] } & (
+      | { epicId: string; initiativeId?: undefined }
+      | { initiativeId: string; epicId?: undefined }
+    ),
+) {
+  const user = await requireUser();
+  const { storyIds, epicId, initiativeId, ...rawPatch } = input as {
+    storyIds: string[];
+    epicId?: string;
+    initiativeId?: string;
+  } & z.input<typeof storyBulkPatchSchema>;
+
+  if ((epicId && initiativeId) || (!epicId && !initiativeId)) {
+    return { ok: false as const, error: "Specify either epic or initiative scope" };
+  }
+
+  const parsed = storyBulkPatchSchema.safeParse(rawPatch);
+  if (!parsed.success) return { ok: false as const, error: "Nothing to update" };
+  const patch = parsed.data;
+  if (storyIds.length === 0) return { ok: false as const, error: "No stories selected" };
+
+  const stories = await prisma.story.findMany({
+    where: {
+      id: { in: storyIds },
+      ...(epicId
+        ? { epicId }
+        : { epic: { initiativeId: initiativeId! } }),
+    },
+    select: { id: true, ownerId: true, assigneeId: true, name: true, epicId: true },
+  });
+  if (stories.length !== storyIds.length) {
+    return {
+      ok: false as const,
+      error: epicId
+        ? "Some stories are missing or not in this epic"
+        : "Some stories are missing or not under this initiative",
+    };
+  }
+  for (const s of stories) {
+    if (!canWriteAssigned(user, s.ownerId, s.assigneeId)) {
+      return { ok: false as const, error: "Permission denied for one or more selected stories" };
+    }
+  }
+
+  const data: Record<string, unknown> = {};
+  if (patch.ownerId !== undefined) data.ownerId = patch.ownerId;
+  if (patch.assigneeId !== undefined) data.assigneeId = patch.assigneeId;
+  if (patch.startDate !== undefined) data.startDate = patch.startDate;
+  if (patch.targetDate !== undefined) data.targetDate = patch.targetDate;
+  if (patch.status !== undefined) data.status = patch.status;
+  if (patch.priority !== undefined) data.priority = patch.priority;
+
+  await prisma.$transaction(
+    storyIds.map((id) =>
+      prisma.story.update({
+        where: { id },
+        data,
+      }),
+    ),
+  );
+
+  const keys = Object.keys(data);
+  if (epicId) {
+    await logActivity({
+      itemType: "EPIC",
+      itemId: epicId,
+      actorId: user.id,
+      kind: "UPDATED",
+      summary: `Bulk-updated ${storyIds.length} stor${storyIds.length === 1 ? "y" : "ies"} (${keys.join(", ")})`,
+      diff: { storyIds, fields: data },
+    });
+    revalidatePath(`/epics/${epicId}`);
+  } else {
+    await logActivity({
+      itemType: "INITIATIVE",
+      itemId: initiativeId!,
+      actorId: user.id,
+      kind: "UPDATED",
+      summary: `Bulk-updated ${storyIds.length} stor${storyIds.length === 1 ? "y" : "ies"} (${keys.join(", ")})`,
+      diff: { storyIds, fields: data },
+    });
+    revalidatePath(`/initiatives/${initiativeId}`);
+  }
+
+  const epicIds = new Set(stories.map((s) => s.epicId));
+  for (const eid of epicIds) revalidatePath(`/epics/${eid}`);
+  for (const id of storyIds) revalidatePath(`/stories/${id}`);
+  return { ok: true as const, count: storyIds.length };
 }
 
 export async function updateStoryStatus(id: string, status: string) {

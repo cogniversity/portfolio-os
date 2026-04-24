@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { requireUser, canWrite } from "@/lib/rbac";
+import { requireUser, canWrite, canWriteAssigned } from "@/lib/rbac";
 import { PageHeader } from "@/components/work/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { PriorityBadge } from "@/components/work/priority-badge";
 import { OwnerAvatar } from "@/components/work/owner-avatar";
 import { formatDate } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WorkItemRowList } from "@/components/work/work-item-row";
+import { BulkWorkList } from "@/components/work/bulk-work-list";
 import { ActivityFeed } from "@/components/collab/activity-feed";
 import { Comments } from "@/components/collab/comments";
 import { SuggestChildrenButton } from "@/components/ai/suggest-children-button";
@@ -24,19 +24,30 @@ export default async function EpicDetailPage({
 }) {
   const { id } = await params;
   const user = await requireUser();
-  const epic = await prisma.epic.findUnique({
-    where: { id },
-    include: {
-      owner: true,
-      initiative: true,
-      product: true,
-      stories: {
-        include: { owner: true, assignee: true, tasks: { select: { id: true, status: true } } },
-        orderBy: { orderIndex: "asc" },
+  const [epic, users] = await Promise.all([
+    prisma.epic.findUnique({
+      where: { id },
+      include: {
+        owner: true,
+        initiative: true,
+        product: true,
+        stories: {
+          include: { owner: true, assignee: true, tasks: { select: { id: true, status: true } } },
+          orderBy: { orderIndex: "asc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
   if (!epic) notFound();
+
+  const canBulkStories =
+    (canWrite(user) ||
+      epic.stories.some((s) => canWriteAssigned(user, s.ownerId, s.assigneeId))) &&
+    epic.stories.length > 0;
 
   return (
     <div>
@@ -105,7 +116,11 @@ export default async function EpicDetailPage({
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
           <TabsContent value="stories">
-            <WorkItemRowList
+            <BulkWorkList
+              kind="story"
+              epicId={epic.id}
+              users={users}
+              canBulk={canBulkStories}
               items={epic.stories.map((s) => ({
                 id: s.id,
                 name: s.name,
